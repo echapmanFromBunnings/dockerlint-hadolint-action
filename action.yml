@@ -57,20 +57,20 @@ runs:
     - name: Format Structured Comment for PR
       id: format-comment
       run: |
-        COMMENT_CONTENT="**🚨 Docker Linting Issues Found 🚨**"
-        COMMENT_CONTENT="${COMMENT_CONTENT}\n\n### Linting Details:\n"
+        # Construct the comment with markdown table format
+        COMMENT_CONTENT="**🚨 Docker Linting Issues Found 🚨**\n\n### Linting Details:\n"
         COMMENT_CONTENT="${COMMENT_CONTENT}| Line | Column | Level | Code | Message |\n"
         COMMENT_CONTENT="${COMMENT_CONTENT}|------|--------|-------|------|---------|\n"
         
+        # Append issues to the comment
         jq -r '.[] | "| \(.line) | \(.column) | \(.level) | \(.code) | \(.message) |"' hadolint_report.json >> comment_output.txt
         COMMENT_CONTENT="${COMMENT_CONTENT}$(cat comment_output.txt)"
         
-        echo "LINT_COMMENT<<EOF" >> $GITHUB_ENV
-        echo "$COMMENT_CONTENT" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+        # Set the comment content as the output for this step
+        echo "::set-output name=lint_comment::$COMMENT_CONTENT"
       shell: bash
     - name: Update Pull Request
       uses: thollander/actions-comment-pull-request@v2
       with:
-        message: "${{ env.LINT_COMMENT }}"
+        message: "${{ steps.format-comment.outputs.lint_comment }}"
         comment_tag: hadolint
