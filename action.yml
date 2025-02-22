@@ -57,20 +57,20 @@ runs:
     - name: Format Structured Comment for PR
       id: format-comment
       run: |
-        # Construct the comment with markdown table format
-        COMMENT_CONTENT="**🚨 Docker Linting Issues Found 🚨**\n\n### Linting Details:\n"
-        COMMENT_CONTENT="${COMMENT_CONTENT}| Line | Column | Level | Code | Message |\n"
-        COMMENT_CONTENT="${COMMENT_CONTENT}|------|--------|-------|------|---------|\n"
+        echo "<strong>🚨 Found Issues in Your Dockerfile 🚨</strong><br>" > hadolint_comment.html
+        echo "<table border='1' cellpadding='5' cellspacing='0'>" >> hadolint_comment.html
+        echo "<tr><th>Line</th><th>Level</th><th>Message</th><th>Code</th></tr>" >> hadolint_comment.html
         
-        # Append issues to the comment
-        jq -r '.[] | "| \(.line) | \(.column) | \(.level) | \(.code) | \(.message) |"' hadolint_report.json >> comment_output.txt
-        COMMENT_CONTENT="${COMMENT_CONTENT}$(cat comment_output.txt)"
+        # Parse the JSON file and create a table row for each issue
+        jq -r '.[] | "<tr><td>" + .line | @text + "</td><td>" + .level + "</td><td>" + .message + "</td><td>" + .code + "</td></tr>"' hadolint_report.json >> hadolint_comment.html
         
-        # Set the comment content as the output for this step
-        echo "::set-output name=lint_comment::$COMMENT_CONTENT"
+        echo "</table>" >> hadolint_comment.html
+        echo "LINE_COMMENT<<EOF" >> $GITHUB_ENV
+        cat hadolint_comment.html >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
       shell: bash
     - name: Update Pull Request
       uses: thollander/actions-comment-pull-request@v2
       with:
-        message: "${{ steps.format-comment.outputs.lint_comment }}"
+        message: "${{ env.LINE_COMMENT }}"
         comment_tag: hadolint
