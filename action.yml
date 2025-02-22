@@ -61,11 +61,11 @@ runs:
         echo "<table border='1' cellpadding='5' cellspacing='0'>" >> hadolint_comment.html
         echo "<tr><th>Line</th><th>Level</th><th>Message</th><th>Code</th></tr>" >> hadolint_comment.html
         
-        # Parse the JSON file and create a table row for each issue
-        jq -r '.[] | "<tr><td>" + .line | @text + "</td><td>" + .level + "</td><td>" + .message + "</td><td>" + .code + "</td></tr>"' hadolint_report.json >> hadolint_comment.html
+        # Parse the JSON file, convert numbers to strings and append them to the HTML table
+        jq -r '.[] | "<tr><td>" + (.line | tostring) + "</td><td>" + .level + "</td><td>" + .message + "</td><td>" + .code + "</td></tr>"' hadolint_report.json >> hadolint_comment.html
         
         echo "</table>" >> hadolint_comment.html
-        echo "LINE_COMMENT<<EOF" >> $GITHUB_ENV
+        echo "LINT_COMMENT<<EOF" >> $GITHUB_ENV
         cat hadolint_comment.html >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
       shell: bash
