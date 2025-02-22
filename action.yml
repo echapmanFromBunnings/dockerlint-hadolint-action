@@ -72,5 +72,5 @@ runs:
     - name: Update Pull Request
       uses: thollander/actions-comment-pull-request@v2
       with:
-        message: "${{ env.LINE_COMMENT }}"
+        message: "${{ env.LINT_COMMENT }}"
         comment_tag: hadolint
