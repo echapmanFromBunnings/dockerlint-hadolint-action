@@ -1,74 +1,23 @@
-name: 'Hadolint-github-ext'
-description: |
-  Wraps dockerlinting tools in a github friendly wrapper
-author: 'echapmanFromBunnings'
-branding:
-  icon: 'archive'
-  color: 'green'
-inputs:
-  dockerfile:
-    description: 'Dockerfile to lint'
-    required: true
+on:
+  pull_request:
+    paths:
+      - 'Dockerfile'
 
-runs:
-  using: "composite"
-  steps:
-    - name: Lint Dockerfile with Hadolint
-      id: hadolint
-      uses: hadolint/hadolint-action@v3.1.0
-      with:
-        dockerfile: Dockerfile
-        failure-threshold: warning
-        format: json
-        output-file: hadolint_report.json
-      continue-on-error: true
+name: docker-lint
 
-    - name: Capture Hadolint Output and Write to Job Summary
-      id: capture-output
-      run: |          
-        # Escape JSON for safer processing
-        ESCAPED_OUTPUT=$(jq -c . hadolint_report.json)
-        
-        # Parse JSON into Markdown Table
-        echo "### 🐳 Docker Linting Results" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "| Line | Column | Level | Code | Message |" >> $GITHUB_STEP_SUMMARY
-        echo "|------|--------|-------|------|---------|" >> $GITHUB_STEP_SUMMARY
-        
-        jq -r '.[] | "| \(.line) | \(.column) | \(.level) | \(.code) | \(.message) |"' hadolint_report.json >> $GITHUB_STEP_SUMMARY
-    - name: Annotate Dockerfile with Hadolint Issues
-      run: |
-        jq -c '.[]' hadolint_report.json | while read -r issue; do
-          LINE=$(echo "$issue" | jq -r '.line')
-          COLUMN=$(echo "$issue" | jq -r '.column')
-          LEVEL=$(echo "$issue" | jq -r '.level')
-          CODE=$(echo "$issue" | jq -r '.code')
-          MESSAGE=$(echo "$issue" | jq -r '.message')
-          
-          # Map LEVEL "info" to "notice"
-          if [ "$LEVEL" == "info" ]; then
-            LEVEL="notice"
-          fi
-          
-          echo "::${LEVEL} file=Dockerfile,line=$LINE,col=$COLUMN,title=$CODE::$MESSAGE"
-        done
-    - name: Format Structured Comment for PR
-      id: format-comment
-      run: |
-        COMMENT_CONTENT="**🚨 Docker Linting Issues Found 🚨**"
-        COMMENT_CONTENT="${COMMENT_CONTENT}\n\n### Linting Details:\n"
-        COMMENT_CONTENT="${COMMENT_CONTENT}| Line | Column | Level | Code | Message |\n"
-        COMMENT_CONTENT="${COMMENT_CONTENT}|------|--------|-------|------|---------|\n"
-        
-        jq -r '.[] | "| \(.line) | \(.column) | \(.level) | \(.code) | \(.message) |"' hadolint_report.json >> comment_output.txt
-        COMMENT_CONTENT="${COMMENT_CONTENT}$(cat comment_output.txt)"
-        
-        echo "LINT_COMMENT<<EOF" >> $GITHUB_ENV
-        echo "$COMMENT_CONTENT" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
-
-    - name: Update Pull Request
-      uses: thollander/actions-comment-pull-request@v2
-      with:
-        message: "${{ env.LINT_COMMENT }}"
-        comment_tag: hadolint
+jobs:
+  lint:
+    name: run
+    runs-on: [ubuntu-latest]
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Lint Dockerfile with Hadolint
+        id: hadolint
+        uses: echapmanFromBunnings/dockerlint-hadolint-action@v1.0.0
+        with:
+          dockerfile: Dockerfile
+        continue-on-error: true
