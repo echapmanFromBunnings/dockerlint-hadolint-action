@@ -68,9 +68,15 @@ runs:
         echo "LINT_COMMENT<<EOF" >> $GITHUB_ENV
         cat hadolint_comment.html >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
+        if [ "$(jq 'length' hadolint_report.json)" -eq 0 ]; then
+          echo "HADOLINT_EMPTY=yes" >> $GITHUB_ENV
+        else
+          echo "HADOLINT_EMPTY=no" >> $GITHUB_ENV
+        fi
       shell: bash
     - name: Update Pull Request
       uses: thollander/actions-comment-pull-request@v2
+      if: env.HADOLINT_EMPTY == 'no'
       with:
         message: "${{ env.LINT_COMMENT }}"
         comment_tag: hadolint

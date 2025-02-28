@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Lint Dockerfile with Hadolint
         id: hadolint
-        uses: echapmanFromBunnings/dockerlint-hadolint-action@1.0.2
+        uses: echapmanFromBunnings/dockerlint-hadolint-action@1.0.3
         with:
           dockerfile: Dockerfile
         continue-on-error: true
